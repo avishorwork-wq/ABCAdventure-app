@@ -1,6 +1,12 @@
+```html
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff6ec4">
+
 <title>Hannanah and Avicado's Alphabet Adventures</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -71,10 +77,14 @@ select option{color:#222}
 <div id="det"></div>
 <div id="lb"><div id="lbm"></div><div id="lbc"></div><div><button onclick="delM()" style="background:#e11d48;color:#fff">🗑 Delete</button> <button onclick="lb.style.display='none';lbm.innerHTML=''">Close</button></div></div>
 <script>
+window.onerror=function(m,u,l,c){var t='';try{var src=document.documentElement.outerHTML,ss=document.scripts;for(var i=0;i<ss.length;i++){var x=ss[i].text,p=src.indexOf(x);if(x&&p>=0){var off=src.slice(0,p).split('\n').length-1,ln=x.split('\n')[l-1-off];if(ln!==undefined&&off<=l-1){t=' | '+ln.slice(Math.max(0,c-60),c+40);break}}}}catch(e){}
+var msg=m+' @'+l+':'+c+t;try{document.getElementById('sy').textContent='⚠️ '+msg;console.log('@@'+JSON.stringify({a:'err',m:msg,ua:navigator.userAgent}))}catch(e){}};
+</script>
+<script>
 /* ====== CONFIG ====== */
 const API='https://script.google.com/macros/s/AKfycby05ZnS8ydwsAve9meGAeAdBbpfcyhwVOeLAjZOnlzk_EImM4e63Gt6x3lD4x2nN0otbA/exec';
-const KEY='AviHannahAvocado_2026_9F7xQ2mP8L'; // must match SECRET in Code.gs
-const CH=2359296; // upload chunk size (multiple of 256KB and 3)
+const KEY='AviHannahAvocado_2026_9F7xQ2mP8L';
+const CH=2359296;
 const $=id=>document.getElementById(id);
 const D=[["A","🎯 🕹️","Arcade","#ff4d8d","#6a11cb","Win tickets, claim silly prizes"],
 ["B","🎳","Bowling","#00c6ff","#0072ff","Strikes, spares & trash talk"],
@@ -122,24 +132,22 @@ function sv(){persist();clearTimeout(syncT);syncT=setTimeout(sync,1200)}
 function ed(l,k,v){const s=st(l);s[k]=v;s.u=Date.now();sv()}
 
 /* ---------- cloud sync ---------- */
-async function api(o){o.k=K;const r=await fetch(API,{method:'POST',body:JSON.stringify(o)});return r.json()}
-async function sync(){
+function api(o){o.k=K;return fetch(API,{method:'POST',body:JSON.stringify(o)}).then(function(r){return r.json()})}
+function sync(){
  if(!K||!started)return;
-  if(syncing){again=1;return}
+ if(syncing){again=1;return}
  syncing=1;
- try{
-  const r=await api({a:'sync',S:S,M:M.filter(m=>m.drive).map(pub)});
+ api({a:'sync',S:S,M:M.filter(m=>m.drive).map(pub)}).then(r=>{
   if(r.err=='auth'){setSy('⚠️ secret in html doesn\'t match Code.gs');return}
   if(r.err)throw r.err;
   merge(r);setSy('☁️ synced')
- }catch(e){setSy('⚠️ offline – will retry');clearTimeout(syncT);syncT=setTimeout(sync,10000)}
- finally{syncing=0;if(again){again=0;clearTimeout(syncT);syncT=setTimeout(sync,300)}}
+ }).catch(e=>{setSy('⚠️ offline – will retry');clearTimeout(syncT);syncT=setTimeout(sync,10000)}).then(()=>{syncing=0;if(again){again=0;clearTimeout(syncT);syncT=setTimeout(sync,300)}})
 }
 function merge(r){let ch=0;
  for(const l in r.S||{}){const a=r.S[l],b=S[l];if(!b||(a.u||0)>(b.u||0)){S[l]=a;ch=1}}
  const by={};M.forEach(m=>by[m.id]=m);
  (r.M||[]).forEach(x=>{const m=by[x.id];
-  if(!m){const n=Object.assign({},x);M.push(n);by[n.id]=n;ch=1}
+  if(!m){const n={};for(const k in x)n[k]=x[k];M.push(n);by[n.id]=n;ch=1}
   else{if(x.del&&!m.del){m.del=1;ch=1}if(x.drive&&!m.drive){m.drive=x.drive;ch=1}if(x.file&&!m.file){m.file=x.file;ch=1}}});
  if(ch){persist();refresh()}}
 function startSync(){if(started)return;started=1;
@@ -154,33 +162,37 @@ function kick(){if(!K||!started)return;M.filter(m=>needUp(m)&&!m._q).forEach(m=>
 function ncall(k,o){return new Promise((ok,no)=>{NP[k]=ok;br(o);setTimeout(()=>{if(NP[k]){delete NP[k];no('timeout')}},90000)})}
 function upReady(id,n){const f=NP['i'+id];if(f){delete NP['i'+id];f(n)}}
 function upData(id,o,d){const k='c'+id+'_'+o,f=NP[k];if(f){delete NP[k];f(d)}}
-async function upload(m){
- try{
-  let size,chunk,b=null,ext=(m._n||m.file||'').split('.').pop().toLowerCase();
-  if(m._b||m.data){
-   b=m._b||await(await fetch(m.data)).blob();size=b.size;
-   chunk=o=>new Promise(ok=>{const f=new FileReader();f.onload=()=>ok(String(f.result).split(',')[1]);f.readAsDataURL(b.slice(o,o+CH))});
-  }else{
-   size=await ncall('i'+m.id,{a:'upinfo',id:m.id,file:m.file});if(!(size>0))throw'read';
-   chunk=o=>ncall('c'+m.id+'_'+o,{a:'upchunk',id:m.id,off:o});
-  }
+function upload(m){
+ var b=null,size=0,chunk=null,ext=(m._n||m.file||'').split('.').pop().toLowerCase(),prep;
+ if(m._b||m.data){
+  prep=Promise.resolve(m._b||fetch(m.data).then(r=>r.blob())).then(bl=>{b=bl;size=b.size;
+   chunk=o=>new Promise(ok=>{const f=new FileReader();f.onload=()=>ok(String(f.result).split(',')[1]);f.readAsDataURL(b.slice(o,o+CH))})});
+ }else{
+  prep=ncall('i'+m.id,{a:'upinfo',id:m.id,file:m.file}).then(n=>{size=n;if(!(n>0))throw'read';
+   chunk=o=>ncall('c'+m.id+'_'+o,{a:'upchunk',id:m.id,off:o})});
+ }
+ return prep.then(()=>{
   if(!MT[ext])ext=m.t=='v'?'mp4':'jpg';
-  const mime=(b&&b.type)||MT[ext];
-  const s=await api({a:'upInit',name:m.id+'.'+ext,mime:mime,size:size});if(s.err)throw s.err;
-  let o=0,r;
-  while(o<size){setSy('⏫ uploading '+Math.round(o/size*100)+'%');
-   const d=await chunk(o);if(!d)throw'chunk';
-   r=await api({a:'upChunk',session:s.session,start:o,total:size,data:d});if(r.err)throw r.err;o+=CH}
+  return api({a:'upInit',name:m.id+'.'+ext,mime:(b&&b.type)||MT[ext],size:size})
+ }).then(s=>{
+  if(s.err)throw s.err;
+  var o=0,r=null;
+  function step(){
+   if(o>=size)return r;
+   setSy('⏫ uploading '+Math.round(o/size*100)+'%');
+   return chunk(o).then(d=>{if(!d)throw'chunk';return api({a:'upChunk',session:s.session,start:o,total:size,data:d})}).then(x=>{if(x.err)throw x.err;r=x;o+=CH;return step()});
+  }
+  return step();
+ }).then(r=>{
   if(!r||!r.id)throw'nofile';
   delete m.data;
-  if(M.includes(m))m.drive=r.id;else M.push({id:m.id,l:m.l,t:m.t,ts:m.ts,drive:r.id,del:1});
+  if(M.indexOf(m)>=0)m.drive=r.id;else M.push({id:m.id,l:m.l,t:m.t,ts:m.ts,drive:r.id,del:1});
   sv();refresh();
- }catch(e){m._q=0;setSy('⚠️ upload failed – will retry')}
- finally{if(NAT)br({a:'updone'})}
+ }).catch(e=>{m._q=0;setSy('⚠️ upload failed – will retry')}).then(()=>{if(NAT)br({a:'updone'})});
 }
 
 /* ---------- native (DroidScript) bridge ---------- */
-function nativeLoad(d){NAT=true;if(d){merge({S:d.S||{},M:d.M||[]})}refresh();startSync()}
+function nativeLoad(d){NAT=true;if(d){merge({S:d.S||{},M:d.M||[]})}refresh();setTimeout(startSync,2500)}
 function nativeAdded(r){M.push(r);sv();refresh();snd('up');kick()}
 function pick(){snd('tap');if(NAT)br({a:'pick',l:D[cur][0]});else $('fi').click()}
 function upl(inp){[...inp.files].forEach(f=>M.push({id:uid(),l:D[cur][0],t:f.type.indexOf('video')==0?'v':'i',ts:Date.now(),_b:f,_n:f.name,_u:URL.createObjectURL(f)}));inp.value='';refresh();snd('up');kick()}
@@ -222,4 +234,18 @@ function delM(){const i=M.findIndex(m=>m.id==lbId);if(i<0)return;const m=M[i];if
 function tab(n){snd('tap');$('n1').className=n==1?'on':'';$('n2').className=n==2?'on':'';$('grid').style.display=n==1?'grid':'none';$('gal').style.display=n==2?'block':'none';if(n==2)rG()}
 function refresh(){rGrid();const v=$('fs').value||'*';$('fs').innerHTML='<option value="*">All memories ('+live().length+')</option>'+D.map(d=>`<option value="${d[0]}">${d[0]} — ${d[2]} (${cnt(d[0])})</option>`).join('');$('fs').value=v;rG();if(cur>=0)rDet()}
 refresh();
+
+/* ---------- PWA service worker ---------- */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function() {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(function() {
+        console.log("PWA service worker registered");
+      })
+      .catch(function(err) {
+        console.log("PWA service worker registration failed:", err);
+      });
+  });
+}
 </script></body></html>
+```
