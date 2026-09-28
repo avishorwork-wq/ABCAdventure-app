@@ -196,6 +196,10 @@ function nativeAdded(r){M.push(r);sv();refresh();snd('up');kick()}
 function pick(){snd('tap');if(NAT)br({a:'pick',l:D[cur][0]});else $('fi').click()}
 function upl(inp){[...inp.files].forEach(f=>M.push({id:uid(),l:D[cur][0],t:f.type.indexOf('video')==0?'v':'i',ts:Date.now(),_b:f,_n:f.name,_u:URL.createObjectURL(f)}));inp.value='';refresh();snd('up');kick()}
 function handleAndroidBack(){if($('lb').style.display=='flex'){$('lb').style.display='none';$('lbm').innerHTML='';return}if($('det').classList.contains('open')){closeD();return}if($('n2').className=='on'){tab(1)}}
+
+window.addEventListener('popstate', handleAndroidBack);
+history.pushState(null, '', location.href);
+
 function openIG(){snd('tap');if(NAT)br({a:'ig'});else window.open('https://www.instagram.com/Abc.in.israel/','_blank')}
 setTimeout(()=>br({a:'ready'}),400);
 setTimeout(()=>{if(!NAT)startSync()},1500);
