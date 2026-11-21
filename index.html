@@ -13,7 +13,7 @@
 body.light{--bg1:#ffe3ef;--bg2:#dcd3ff;--tx:#2b1a3d;--glass:rgba(255,255,255,.7)}
 body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,sans-serif;color:var(--tx);background:linear-gradient(160deg,var(--bg1),var(--bg2)) fixed;overflow-x:hidden;transition:background .5s}
 header{padding:18px 16px 8px;text-align:center}
-h1{margin:0;line-height:1.1;cursor:pointer;-webkit-user-select:none;user-select:none}
+h1{margin:0;line-height:1.1;-webkit-user-select:none;user-select:none}
 h1 small{display:block;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:.85;margin-bottom:5px}
 h1 span{display:block;font-size:clamp(24px,8vw,32px);font-weight:900;letter-spacing:.3px;background:linear-gradient(90deg,#ff6ec4,#ffd86e);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 6px #0004)}
 nav .ic{flex:0 0 46px;padding:11px 0;font-size:18px}
@@ -65,15 +65,18 @@ select option{color:#222}
 #lb img,#lb video{max-width:94vw;max-height:72vh;border-radius:14px}
 #lb iframe{width:94vw;max-width:900px;height:60vh;border:0;border-radius:14px}
 #lb button{border:0;border-radius:20px;padding:10px 20px;font-size:15px}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(90px);background:#111e;color:#fff;padding:12px 18px;border-radius:16px;font-size:14px;font-weight:600;z-index:80;opacity:0;transition:.35s;max-width:86vw;text-align:center;backdrop-filter:blur(6px);pointer-events:none}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .cf{position:fixed;z-index:60;width:10px;height:14px;pointer-events:none;animation:cf 1.6s ease-out forwards}
 @keyframes cf{to{transform:translate(var(--x),var(--y)) rotate(720deg);opacity:0}}
 .empty{text-align:center;opacity:.7;padding:30px}
 </style></head><body class="light">
-<header><h1 onclick="openIG()"><small>Hannanah and Avicado's</small><span>Alphabet Adventures</span></h1><div class="bar"><i id="pb"></i></div><div id="pt"></div><div id="sy"></div></header>
+<header><h1><small>Hannanah and Avicado's</small><span>Alphabet Adventures</span></h1><div class="bar"><i id="pb"></i></div><div id="pt"></div><div id="sy"></div></header>
 <nav><button id="n1" class="on" onclick="tab(1)">✅ Checklist</button><button id="n2" onclick="tab(2)">🖼️ Gallery</button><button class="ic" onclick="togT()">🌙</button></nav>
 <div class="grid" id="grid"></div>
 <div id="gal"><select id="fs" onchange="rG()"></select><div class="gg" id="gg"></div></div>
 <div id="det"></div>
+<div id="toast"></div>
 <div id="lb"><div id="lbm"></div><div id="lbc"></div><div><button onclick="delM()" style="background:#e11d48;color:#fff">🗑 Delete</button> <button onclick="lb.style.display='none';lbm.innerHTML=''">Close</button></div></div>
 <script>
 window.onerror=function(m,u,l,c){var t='';try{var src=document.documentElement.outerHTML,ss=document.scripts;for(var i=0;i<ss.length;i++){var x=ss[i].text,p=src.indexOf(x);if(x&&p>=0){var off=src.slice(0,p).split('\n').length-1,ln=x.split('\n')[l-1-off];if(ln!==undefined&&off<=l-1){t=' | '+ln.slice(Math.max(0,c-60),c+40);break}}}}catch(e){}
@@ -99,7 +102,7 @@ const D=[["A","🎯 🕹️","Arcade","#ff4d8d","#6a11cb","Win tickets, claim si
 ["L","🧱","Lego","#ee0979","#ff6a00","Build something together"],
 ["M","🍿 🎬","Movie theater","#200122","#8e0000","Popcorn & a good seat"],
 ["N","🍂 🍁","Nature walk","#d38312","#a83279","Slow down, look around"],
-["O","🏙️ 🌙","Old City sleepover","#614385","#516395","Stone alleys at night"],
+["O","🏙️ 🌙","Old City shabbas","#614385","#516395","Stone alleys at night"],
 ["P","🏺 🎨","Pottery","#c86dd7","#3023ae","Get your hands dirty"],
 ["Q","🗺️ 🧭","Quest through Mamilla","#43cea2","#185a9d","Scavenger hunt adventure"],
 ["R","📍 🚗","Ramat Bet Shemesh day","#ff9966","#ff5e62","A whole day out"],
@@ -127,7 +130,7 @@ try{if(!Object.keys(S).length)S=JSON.parse(localStorage.az||'{}')}catch(e){}
 /* ---------- local save ---------- */
 function ser(){return{S:S,M:M.filter(m=>m.drive||m.file||m.data).map(m=>{const o={};for(const k in m)if(k[0]!='_')o[k]=m[k];return o})}}
 function persist(){const d=ser();try{localStorage.az2=JSON.stringify(d)}catch(e){}clearTimeout(saveT);saveT=setTimeout(()=>br({a:'save',d:d}),300)}
-function sv(){persist();clearTimeout(syncT);syncT=setTimeout(sync,1200)}
+function sv(){persist();clearTimeout(syncT);syncT=setTimeout(sync,400)}
 function ed(l,k,v){const s=st(l);s[k]=v;s.u=Date.now();sv()}
 
 /* ---------- cloud sync ---------- */
@@ -142,16 +145,35 @@ function sync(){
   merge(r);setSy('☁️ synced')
  }).catch(e=>{setSy('⚠️ offline – will retry');clearTimeout(syncT);syncT=setTimeout(sync,10000)}).then(()=>{syncing=0;if(again){again=0;clearTimeout(syncT);syncT=setTimeout(sync,300)}})
 }
-function merge(r){let ch=0;
- for(const l in r.S||{}){const a=r.S[l],b=S[l];if(!b||(a.u||0)>(b.u||0)){S[l]=a;ch=1}}
- const by={};M.forEach(m=>by[m.id]=m);
+let firstSync=1,toastT;
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),4500)}
+function actName(l){const d=D.find(x=>x[0]==l);return d?d[0]+' - '+d[2]:l}
+function notifySync(ev){
+ const doneActs=ev.filter(e=>e.k=='done').map(e=>actName(e.l));
+ const mediaN=ev.reduce((s2,e)=>s2+(e.n||0),0);
+ const mediaTxt=mediaN?'\ud83d\udcf8 '+mediaN+' new memor'+(mediaN==1?'y':'ies'):'';
+ if(firstSync){firstSync=0;
+  const parts=[];
+  if(doneActs.length)parts.push('\u2705 '+doneActs.join(', '));
+  if(mediaTxt)parts.push(mediaTxt);
+  if(parts.length)toast('While you were away: '+parts.join(' \u00b7 '));
+  return}
+ const parts=doneActs.map(a=>'\u2705 Done: '+a);
+ if(mediaTxt)parts.push(mediaTxt+' added!');
+ if(parts.length){toast(parts.join(' \u00b7 '));snd(doneActs.length?'done':'up')}}
+function merge(r){let ch=0;const ev=[];
+ for(const l in r.S||{}){const a=r.S[l],b=S[l];if(!b||(a.u||0)>(b.u||0)){if(a.done&&!(b&&b.done))ev.push({k:'done',l:l});S[l]=a;ch=1}}
+ const by={};M.forEach(m=>by[m.id]=m);let newMedia=0;
  (r.M||[]).forEach(x=>{const m=by[x.id];
-  if(!m){const n={};for(const k in x)n[k]=x[k];M.push(n);by[n.id]=n;ch=1}
+  if(!m){const n={};for(const k in x)n[k]=x[k];M.push(n);by[n.id]=n;ch=1;if(!n.del)newMedia++}
   else{if(x.del&&!m.del){m.del=1;ch=1}if(x.drive&&!m.drive){m.drive=x.drive;ch=1}if(x.file&&!m.file){m.file=x.file;ch=1}}});
+ if(newMedia)ev.push({k:'media',n:newMedia});
+ if(ev.length)notifySync(ev);
  if(ch){persist();refresh()}}
 function startSync(){if(started)return;started=1;
  sync();
- setInterval(()=>{if(!document.hidden)sync()},15000);setInterval(kick,20000);kick()}
+ setInterval(()=>{if(!document.hidden)sync()},4000);setInterval(kick,20000);kick()}
+window.addEventListener('focus',()=>{if(started)sync()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 
 /* ---------- uploads (chunked, via Apps Script -> Drive) ---------- */
@@ -200,9 +222,8 @@ function handleAndroidBack(){if($('lb').style.display=='flex'){$('lb').style.dis
 window.addEventListener('popstate', handleAndroidBack);
 history.pushState(null, '', location.href);
 
-function openIG(){snd('tap');if(NAT)br({a:'ig'});else window.open('https://www.instagram.com/Abc.in.israel/','_blank')}
 setTimeout(()=>br({a:'ready'}),400);
-setTimeout(()=>{if(!NAT)startSync()},1500);
+setTimeout(()=>{if(!NAT)startSync()},500);
 
 /* ---------- ui ---------- */
 function snd(n){if(mute)return;try{AC=AC||new(window.AudioContext||webkitAudioContext)();const q={tap:[[520,.04]],open:[[392,.07],[523,.07],[659,.1]],done:[[523,.09],[659,.09],[784,.09],[1047,.25]],undo:[[330,.07],[262,.1]],up:[[600,.06],[900,.1]],del:[[200,.15]],win:[[523,.1],[659,.1],[784,.1],[1047,.1],[1319,.1],[1568,.4]]}[n];let t=AC.currentTime;q.forEach(([f,d])=>{const o=AC.createOscillator(),g=AC.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+d+.1);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.12);t+=d})}catch(e){}}
@@ -230,8 +251,9 @@ function closeD(){snd('tap');$('det').classList.remove('open');cur=-1;rGrid()}
 function togD(){const l=D[cur][0];ed(l,'done',st(l).done?0:1);const on=st(l).done;rDet();if(on){boom();const all=D.every(d=>st(d[0]).done);snd(all?'win':'done');if(all)setTimeout(()=>boom(90),500)}else snd('undo');rGrid()}
 function rate(n){const l=D[cur][0];ed(l,'r',st(l).r==n?0:n);snd('tap');rDet()}
 function rG(){const v=$('fs').value,a=live().filter(m=>v=='*'||m.l==v).sort((a,b)=>b.ts-a.ts);$('gg').innerHTML=a.length?a.map(m=>tile(m,m.l)).join(''):'<div class="empty" style="grid-column:1/-1;aspect-ratio:auto;background:none">Nothing here yet 🌸<br>Open a date and upload memories!</div>'}
+function vidFb(el,id){const v=el.tagName=='VIDEO'?el:el.parentElement;if(!v)return;const f=document.createElement('iframe');f.src='https://drive.google.com/file/d/'+id+'/preview';f.allow='autoplay;fullscreen';f.allowFullscreen=true;v.replaceWith(f)}
 function lbo(id){const m=M.find(x=>x.id==id&&!x.del);if(!m)return;lbId=m.id;snd('tap');const u=loc(m),v=m.t=='v';
- $('lbm').innerHTML=u?(v?`<video src="${u}" controls autoplay playsinline></video>`:`<img src="${u}">`):(v?`<iframe src="https://drive.google.com/file/d/${m.drive}/preview" allow="autoplay;fullscreen" allowfullscreen></iframe>`:`<img src="${TH(m.drive,2000)}">`);
+ $('lbm').innerHTML=u?(v?`<video src="${u}" controls autoplay playsinline></video>`:`<img src="${u}">`):(v?`<video controls autoplay playsinline preload="auto" poster="${TH(m.drive,800)}"><source src="https://drive.google.com/uc?export=download&id=${m.drive}" onerror="vidFb(this,'${m.drive}')"></video>`:`<img src="${TH(m.drive,2000)}">`);
  $('lbc').textContent=m.l+' — '+D.find(x=>x[0]==m.l)[2]+' · '+new Date(m.ts).toLocaleDateString();$('lb').style.display='flex'}
 function delM(){const i=M.findIndex(m=>m.id==lbId);if(i<0)return;const m=M[i];if(m.drive)m.del=1;else M.splice(i,1);sv();snd('del');$('lb').style.display='none';$('lbm').innerHTML='';refresh()}
 function tab(n){snd('tap');$('n1').className=n==1?'on':'';$('n2').className=n==2?'on':'';$('grid').style.display=n==1?'grid':'none';$('gal').style.display=n==2?'block':'none';if(n==2)rG()}
