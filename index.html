@@ -262,7 +262,7 @@ refresh();
 
 /* ---------- push alerts ---------- */
 const PUSH='https://abc-push.avishorwork.workers.dev';
-const VPUB='BDqHvvIpwZKIj5j1ihIoEHX7wxTG-nc9p0gbzmdf-3-KdppFl_PsOtIqxArLhUkSjRch51U75R3aWJCuYXimqM8';
+const VPUB='BIL3wFO3P3iK8n5V8hemxYB5T2j_b1xRJjzA7sKW55GD4IXgWlvAgq9ThIo-slGl5o_vcKfIHcvlSwlq3IWTeLI';
 let myEp=localStorage.ep||'',pendB=null;
 function noteAct(t){pendB=t}
 function bcast(t){fetch(PUSH+'/broadcast',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:K,from:myEp||'-',title:'ABC Adventure 💑',body:(localStorage.who||'Your partner')+' '+t})}).catch(()=>{})}
