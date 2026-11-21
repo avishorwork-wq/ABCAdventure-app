@@ -1,4 +1,4 @@
-const CACHE = "hannah-avocado-v3";
+const CACHE = "hannah-avocado-v4";
 
 const FILES = [
   "./",
