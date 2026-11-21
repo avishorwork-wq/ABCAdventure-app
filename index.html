@@ -71,7 +71,7 @@ select option{color:#222}
 @keyframes cf{to{transform:translate(var(--x),var(--y)) rotate(720deg);opacity:0}}
 .empty{text-align:center;opacity:.7;padding:30px}
 </style></head><body class="light">
-<header><h1><small>Hannanah and Avicado's</small><span>Alphabet Adventures</span></h1><div class="bar"><i id="pb"></i></div><div id="pt"></div><div id="sy"></div></header>
+<header><h1><small>Hannanah and Avicado's</small><span>Alphabet Adventures</span></h1><div class="bar"><i id="pb"></i></div><div id="pt"></div><div id="sy"></div><button id="bell" onclick="enableAlerts()" title="Alerts" style="position:absolute;top:8px;right:8px;background:none;border:none;font-size:22px;cursor:pointer;z-index:5">🔕</button></header>
 <nav><button id="n1" class="on" onclick="tab(1)">✅ Checklist</button><button id="n2" onclick="tab(2)">🖼️ Gallery</button><button class="ic" onclick="togT()">🌙</button></nav>
 <div class="grid" id="grid"></div>
 <div id="gal"><select id="fs" onchange="rG()"></select><div class="gg" id="gg"></div></div>
@@ -131,7 +131,7 @@ try{if(!Object.keys(S).length)S=JSON.parse(localStorage.az||'{}')}catch(e){}
 function ser(){return{S:S,M:M.filter(m=>m.drive||m.file||m.data).map(m=>{const o={};for(const k in m)if(k[0]!='_')o[k]=m[k];return o})}}
 function persist(){const d=ser();try{localStorage.az2=JSON.stringify(d)}catch(e){}clearTimeout(saveT);saveT=setTimeout(()=>br({a:'save',d:d}),300)}
 function sv(){persist();clearTimeout(syncT);syncT=setTimeout(sync,400)}
-function ed(l,k,v){const s=st(l);s[k]=v;s.u=Date.now();sv()}
+function ed(l,k,v){const s=st(l);s[k]=v;s.u=Date.now();if(k=='date'&&v)noteAct('picked a date for '+actName(l)+' 📅');sv()}
 
 /* ---------- cloud sync ---------- */
 function api(o){o.k=K;return fetch(API,{method:'POST',body:JSON.stringify(o)}).then(function(r){return r.json()})}
@@ -142,7 +142,7 @@ function sync(){
  api({a:'sync',S:S,M:M.filter(m=>m.drive).map(pub)}).then(r=>{
   if(r.err=='auth'){setSy('⚠️ secret in html doesn\'t match Code.gs');return}
   if(r.err)throw r.err;
-  merge(r);setSy('☁️ synced')
+  merge(r);setSy('☁️ synced');if(pendB){const t=pendB;pendB=null;bcast(t)}
  }).catch(e=>{setSy('⚠️ offline – will retry');clearTimeout(syncT);syncT=setTimeout(sync,10000)}).then(()=>{syncing=0;if(again){again=0;clearTimeout(syncT);syncT=setTimeout(sync,300)}})
 }
 let firstSync=1,toastT;
@@ -172,7 +172,7 @@ function merge(r){let ch=0;const ev=[];
  if(ch){persist();refresh()}}
 function startSync(){if(started)return;started=1;
  sync();
- setInterval(()=>{if(!document.hidden)sync()},4000);setInterval(kick,20000);kick()}
+ setInterval(()=>{if(!document.hidden)sync()},2500);setInterval(kick,20000);kick()}
 window.addEventListener('focus',()=>{if(started)sync()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 
@@ -214,9 +214,9 @@ function upload(m){
 
 /* ---------- native (DroidScript) bridge ---------- */
 function nativeLoad(d){NAT=true;if(d){merge({S:d.S||{},M:d.M||[]})}refresh();setTimeout(startSync,2500)}
-function nativeAdded(r){M.push(r);sv();refresh();snd('up');kick()}
+function nativeAdded(r){M.push(r);noteAct('added new memories to '+actName(r.l)+' 📸');sv();refresh();snd('up');kick()}
 function pick(){snd('tap');if(NAT)br({a:'pick',l:D[cur][0]});else $('fi').click()}
-function upl(inp){[...inp.files].forEach(f=>M.push({id:uid(),l:D[cur][0],t:f.type.indexOf('video')==0?'v':'i',ts:Date.now(),_b:f,_n:f.name,_u:URL.createObjectURL(f)}));inp.value='';refresh();snd('up');kick()}
+function upl(inp){[...inp.files].forEach(f=>M.push({id:uid(),l:D[cur][0],t:f.type.indexOf('video')==0?'v':'i',ts:Date.now(),_b:f,_n:f.name,_u:URL.createObjectURL(f)}));inp.value='';refresh();snd('up');noteAct('added new memories to '+actName(D[cur][0])+' 📸');kick()}
 function handleAndroidBack(){if($('lb').style.display=='flex'){$('lb').style.display='none';$('lbm').innerHTML='';return}if($('det').classList.contains('open')){closeD();return}if($('n2').className=='on'){tab(1)}}
 
 window.addEventListener('popstate', handleAndroidBack);
@@ -248,8 +248,8 @@ el.innerHTML=f+`<div class="in"><button class="back" onclick="closeD()">← Back
 <div class="box"><b>📸 Photos &amp; videos</b><div class="up" onclick="pick()">⬆️ Add photo / video</div><input id="fi" type="file" accept="image/*,video/*" multiple hidden onchange="upl(this)"><div class="mg" id="mg"></div></div></div>`;
 rDet();el.scrollTop=0;el.classList.add('open')}
 function closeD(){snd('tap');$('det').classList.remove('open');cur=-1;rGrid()}
-function togD(){const l=D[cur][0];ed(l,'done',st(l).done?0:1);const on=st(l).done;rDet();if(on){boom();const all=D.every(d=>st(d[0]).done);snd(all?'win':'done');if(all)setTimeout(()=>boom(90),500)}else snd('undo');rGrid()}
-function rate(n){const l=D[cur][0];ed(l,'r',st(l).r==n?0:n);snd('tap');rDet()}
+function togD(){const l=D[cur][0];ed(l,'done',st(l).done?0:1);const on=st(l).done;noteAct((on?'completed ':'unmarked ')+actName(l)+(on?' ❤️':''));rDet();if(on){boom();const all=D.every(d=>st(d[0]).done);snd(all?'win':'done');if(all)setTimeout(()=>boom(90),500)}else snd('undo');rGrid()}
+function rate(n){const l=D[cur][0];const off=st(l).r==n;ed(l,'r',off?0:n);if(!off)noteAct('rated '+actName(l)+' '+'❤️'.repeat(n));snd('tap');rDet()}
 function rG(){const v=$('fs').value,a=live().filter(m=>v=='*'||m.l==v).sort((a,b)=>b.ts-a.ts);$('gg').innerHTML=a.length?a.map(m=>tile(m,m.l)).join(''):'<div class="empty" style="grid-column:1/-1;aspect-ratio:auto;background:none">Nothing here yet 🌸<br>Open a date and upload memories!</div>'}
 function vidFb(el,id){const v=el.tagName=='VIDEO'?el:el.parentElement;if(!v)return;const f=document.createElement('iframe');f.src='https://drive.google.com/file/d/'+id+'/preview';f.allow='autoplay;fullscreen';f.allowFullscreen=true;v.replaceWith(f)}
 function lbo(id){const m=M.find(x=>x.id==id&&!x.del);if(!m)return;lbId=m.id;snd('tap');const u=loc(m),v=m.t=='v';
@@ -259,6 +259,34 @@ function delM(){const i=M.findIndex(m=>m.id==lbId);if(i<0)return;const m=M[i];if
 function tab(n){snd('tap');$('n1').className=n==1?'on':'';$('n2').className=n==2?'on':'';$('grid').style.display=n==1?'grid':'none';$('gal').style.display=n==2?'block':'none';if(n==2)rG()}
 function refresh(){rGrid();const v=$('fs').value||'*';$('fs').innerHTML='<option value="*">All memories ('+live().length+')</option>'+D.map(d=>`<option value="${d[0]}">${d[0]} — ${d[2]} (${cnt(d[0])})</option>`).join('');$('fs').value=v;rG();if(cur>=0)rDet()}
 refresh();
+
+/* ---------- push alerts ---------- */
+const PUSH='https://abc-push.avishorwork.workers.dev';
+const VPUB='BDqHvvIpwZKIj5j1ihIoEHX7wxTG-nc9p0gbzmdf-3-KdppFl_PsOtIqxArLhUkSjRch51U75R3aWJCuYXimqM8';
+let myEp=localStorage.ep||'',pendB=null;
+function noteAct(t){pendB=t}
+function bcast(t){fetch(PUSH+'/broadcast',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:K,from:myEp||'-',title:'ABC Adventure 💑',body:(localStorage.who||'Your partner')+' '+t})}).catch(()=>{})}
+function b64uToU8(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
+function bellSet(t){const b=$('bell');if(b)b.textContent=t}
+async function enableAlerts(){
+ snd('tap');
+ if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){toast('This install cannot do background alerts 😕');return}
+ try{
+  if(localStorage.who===undefined){const w=prompt('Your name, so the other phone knows who did it (Avi / Hannah):','');localStorage.who=w||''}
+  const p=await Notification.requestPermission();
+  if(p!=='granted'){toast('Notifications are blocked - allow them in your app or site settings');return}
+  const reg=await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uToU8(VPUB)});
+  myEp=sub.endpoint;localStorage.ep=myEp;
+  const r=await fetch(PUSH+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:K,who:localStorage.who||'',subscription:sub.toJSON()})});
+  const j=await r.json();
+  if(j.ok){bellSet('🔔');toast('🔔 Alerts on! You will be notified even when the app is closed')}
+  else toast('Alert setup failed - please try again');
+ }catch(e){toast('Alert setup failed: '+e)}
+}
+if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{const d=e.data||{};if(d.t=='sync'){if(d.body)toast(d.body);sync()}});
+if(myEp&&'Notification' in window&&Notification.permission=='granted'){bellSet('🔔');navigator.serviceWorker.ready.then(r=>r.pushManager.getSubscription()).then(sub=>{if(sub){myEp=sub.endpoint;localStorage.ep=myEp;fetch(PUSH+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:K,who:localStorage.who||'',subscription:sub.toJSON()})}).catch(()=>{})}}).catch(()=>{})}
 
 /* ---------- PWA service worker ---------- */
 if ("serviceWorker" in navigator) {
