@@ -1,4 +1,4 @@
-const CACHE = "hannah-avocado-v5";
+const CACHE = "hannah-avocado-v5-unlock-prep";
 
 const FILES = [
   "./",
